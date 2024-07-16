@@ -44,6 +44,7 @@ class Server:
                 data = conn.recv(1024)
                 if not data:
                     break
+                print(f"Received from client: {data.decode()}")
                 conn.sendall(data)
         except Exception as e:
             # print(f"Error during client communication: {e}")
