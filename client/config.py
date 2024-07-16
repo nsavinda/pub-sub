@@ -1,0 +1,4 @@
+SERVER_HOST: str = '127.0.0.1'
+SERVER_PORT: int = 65432
+
+
