@@ -19,13 +19,15 @@ class Client:
                 try:
                     # message = input("Enter message to send (or '/exit' to quit):")
                     message = input(f"{bcolors.OKBLUE}Enter message to send (or '/exit' to quit):{bcolors.ENDC}")
-                    if message.lower() == '/exit':
+                    if message.lower() == '/terminate':
+                        self.client_socket.close()
                         break
                     self.send_message(message)
                 except Exception as e:
                     # print(f"Error during message input or sending: {e}")
                     print(f"{bcolors.FAIL}Error during message input or sending: {e}{bcolors.ENDC}")
-                
+        except KeyboardInterrupt:
+            print("Client stopped by user")
         except Exception as e:
             # print(f"Failed to connect to server: {e}")
             print(f"{bcolors.FAIL}Failed to connect to server: {e}{bcolors.ENDC}")

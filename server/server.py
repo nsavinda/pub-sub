@@ -28,7 +28,8 @@ class Server:
                 except Exception as e:
                     # print(f"Error handling client {addr}: {e}")
                     print(f"{bcolors.FAIL}Error handling client {addr}: {e}{bcolors.ENDC}")
-                    
+        except KeyboardInterrupt:
+            print("Server stopped by user")
         except Exception as e:
             # print(f"Failed to start server: {e}")
             print(f"{bcolors.FAIL}Failed to start server: {e}{bcolors.ENDC}")
