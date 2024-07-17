@@ -36,8 +36,11 @@ class Server:
 
     def handle_client(self, conn: socket.socket) -> None:
         try:
-            role = conn.recv(1024).decode().upper().strip()
-            topic = conn.recv(1024).decode().upper().strip()
+            data = conn.recv(1024).decode()
+            parts = data.split(',')
+            print(f"Parts received from client: {parts}")
+            role = parts[0].strip().upper()
+            topic = parts[1].strip().upper()
             print(f"Role received: {role}, Topic received: {topic}")
 
             if role not in ['PUBLISHER', 'SUBSCRIBER']:
@@ -61,14 +64,13 @@ class Server:
             conn.close()
 
     def handle_publisher(self, conn: socket.socket, topic: str) -> None:
-        print(f"{bcolors.OKGREEN}Handle Publisher called{bcolors.ENDC}")
         try:
             while True:
                 message = conn.recv(1024).decode()
                 if not message:
                     break
                 print(f"{bcolors.OKBLUE}Message from publisher on topic {topic}: {message}{bcolors.ENDC}")
-                self.broadcast(message, topic, exclude_publisher=True)
+                self.broadcast(message, topic, conn)
         except ConnectionResetError:
             print(f"{bcolors.FAIL}Connection reset by peer{bcolors.ENDC}")
         except Exception as e:
@@ -80,7 +82,6 @@ class Server:
             conn.close()
 
     def handle_subscriber(self, conn: socket.socket) -> None:
-        print(f"{bcolors.OKGREEN}Handle Subscriber called{bcolors.ENDC}")
         try:
             while True:
                 data = conn.recv(1024)
@@ -97,13 +98,20 @@ class Server:
                     del self.clients[conn]
             conn.close()
 
-    def broadcast(self, message: str, topic: str, exclude_publisher: bool = False) -> None:
+    def broadcast(self, message: str,topic: str,  publisher_conn: socket.socket) -> None:
         with self.lock:
-            for client, (role, client_topic) in self.clients.items():
-                if exclude_publisher and role == 'PUBLISHER':
-                    continue
-                if client_topic == topic:
-                    try:
-                        client.sendall(message.encode())
-                    except Exception as e:
-                        print(f"{bcolors.FAIL}Error broadcasting message: {e}{bcolors.ENDC}")
+            try:
+                for client, (role, client_topic) in self.clients.items():
+                    if role == 'SUBSCRIBER':
+                        if client_topic == topic:
+                            try:
+                                client.sendall(message.encode())
+                            except Exception as e:
+                                print(f"{bcolors.FAIL}Error broadcasting message: {e}{bcolors.ENDC}")
+                publisher_conn.sendall(message.encode())
+
+            except Exception as e:
+                if publisher_conn in self.clients:
+                    print(f"{bcolors.FAIL}Error sending success response to publisher: {e}{bcolors.ENDC}")
+                else:
+                    print(f"{bcolors.FAIL}Error broadcasting message to subscriber: {e}{bcolors.ENDC}")

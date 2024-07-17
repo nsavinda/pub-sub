@@ -15,8 +15,9 @@ class Client:
         try:
             self.client_socket.connect((self.server_host, self.server_port))
             print(f"{bcolors.OKGREEN}Connected to server at {self.server_host}:{self.server_port} as {self.role} on topic {self.topic}{bcolors.ENDC}")
-            self.client_socket.sendall(self.role.encode())
-            self.client_socket.sendall(self.topic.encode())
+
+            # Send role and topic as a single message with a delimiter
+            self.client_socket.sendall(f"{self.role},{self.topic}".encode())
 
             if self.role == 'PUBLISHER':
                 self.publisher_mode()
@@ -35,19 +36,12 @@ class Client:
     def publisher_mode(self) -> None:
         try:
             while True:
-                message = input(f"{bcolors.OKBLUE}Enter message to send (or '/terminate' to quit):{bcolors.ENDC}")
+                message = input(f"{bcolors.OKBLUE}Enter message to send (or '/terminate' to quit): {bcolors.ENDC}")
                 if message.lower() == '/terminate':
-                    self.client_socket.close()
                     break
                 self.send_message(f"{self.topic}: {message}")
         except KeyboardInterrupt:
             print("Publisher stopped by user")
-        except ConnectionAbortedError:
-            print(f"{bcolors.FAIL}Connection Aborted: Server closed the connection.{bcolors.ENDC}")
-        except ConnectionResetError:
-            print(f"{bcolors.FAIL}Connection Reset: Connection reset by peer.{bcolors.ENDC}")
-        except BrokenPipeError:
-            print(f"{bcolors.FAIL}Broken Pipe: Server unexpectedly closed the connection.{bcolors.ENDC}")
         except Exception as e:
             print(f"{bcolors.FAIL}Error during message input or sending: {e}{bcolors.ENDC}")
         finally:
@@ -60,19 +54,22 @@ class Client:
                 if not data:
                     break
                 print(f"{bcolors.OKCYAN}Received from server: {data.decode()}{bcolors.ENDC}")
-        except ConnectionResetError:
-            print("Connection reset by peer")
         except KeyboardInterrupt:
             print("Subscriber stopped by user")
         except Exception as e:
-            print(f"{bcolors.FAIL}Error: {e}{bcolors.ENDC}")
+            print(f"{bcolors.FAIL}Error during receiving: {e}{bcolors.ENDC}")
         finally:
             self.client_socket.close()
 
     def send_message(self, message: str) -> None:
         try:
             self.client_socket.sendall(message.encode())
+        except Exception as e:
+            print(f"{bcolors.FAIL}Error during message sending: {e}{bcolors.ENDC}")
+            return
+        
+        try:
             data = self.client_socket.recv(1024)
             print(f"{bcolors.OKCYAN}Received from server: {data.decode()}{bcolors.ENDC}")
         except Exception as e:
-            print(f"{bcolors.FAIL}Error during message sending/receiving: {e}{bcolors.ENDC}")
+            print(f"{bcolors.FAIL}Error during receiving response: {e}{bcolors.ENDC}")
