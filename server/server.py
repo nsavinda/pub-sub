@@ -38,10 +38,8 @@ class Server:
         try:
             data = conn.recv(1024).decode()
             parts = data.split(',')
-            print(f"Parts received from client: {parts}")
             role = parts[0].strip().upper()
             topic = parts[1].strip().upper()
-            print(f"Role received: {role}, Topic received: {topic}")
 
             if role not in ['PUBLISHER', 'SUBSCRIBER']:
                 print(f"Invalid role '{role}' received from client.")
