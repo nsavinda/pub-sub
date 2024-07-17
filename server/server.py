@@ -10,12 +10,29 @@ class ConnectionType(Enum):
     PUBLISHER = "publisher"
     SUBSCRIBER = "subscriber"
 
+class RelativeServer:
+    def __init__(self, conn:socket.socket , host:str, port:int) -> None:
+        print(f"Connecting from {conn.getpeername()}")
+        print(f"Connecting to {host}:{port}")
+        self.host = host
+        self.port = port
+        self.conn = conn
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.connect((host, port))
+        self.server_socket.sendall(f'/server:{conn.getsockname()[0]}:{conn.getsockname()[1]}'.encode())
+        print(f"{bcolors.OKGREEN}Connected to server at {host}:{port}{bcolors.ENDC}")
+        # self.server_socket.connect((host, port))
+        # self.thread = threading.Thread(target=self.handle_server)
+
+
+
 
 class Connection:
     def __init__(self,conn: socket.socket, type:ConnectionType, topic:str = None):
         self.conn = conn
         self.type = type
         self.topic = topic
+
 
 
 # class Connection:
@@ -32,6 +49,7 @@ class Server:
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections : list[Connection] = []
+        self.relative_servers : list[RelativeServer] = []
     
     def start(self) -> None:
         try:
@@ -70,6 +88,7 @@ class Server:
     def handle_client(self, conn: socket.socket) -> None:
         try:
             while True:
+                msg_from_server:int = 0
                 try:
                     data = conn.recv(4096)
                     if not data:
@@ -82,6 +101,23 @@ class Server:
                         elif headers[0] == 'publisher':
                             self.connections.append(Connection(conn,ConnectionType.PUBLISHER, headers[1]))
                             print(f"{bcolors.OKGREEN}New publisher added{bcolors.ENDC} with topic {headers[1]}")
+                        elif headers[0] == 'server':
+                            if any(server.host == headers[1] and server.port == int(headers[2]) for server in self.relative_servers):
+                                print(f"{bcolors.FAIL}Server already exists{bcolors.ENDC}")
+                            else:
+                                self.relative_servers.append(RelativeServer(conn, headers[1], int(headers[2])))
+                                print([server.server_socket for server in self.relative_servers])
+                                print(f"{bcolors.OKGREEN}New server added{bcolors.ENDC} with host {headers[1]} and port {headers[2]}")
+                        elif headers[0] == 'topic':
+                            # check server in relative_servers
+                            # if not in relative_servers, send error
+                            msg_from_server = 1
+                            if any(server.conn.getpeername()[0] == conn.getpeername()[0] and server.conn.getpeername()[1] == conn.getpeername()[1] for server in self.relative_servers):
+                                print(f"{bcolors.OKGREEN}Topic added{bcolors.ENDC} with topic {headers[1]}")
+                            else:
+                                print(f"{bcolors.FAIL}Server not found in relative servers{bcolors.ENDC}")
+
+                            
                         else:
                             print(f"{bcolors.FAIL}Invalid header{bcolors.ENDC}")
                         continue
@@ -92,7 +128,7 @@ class Server:
                     #         self.connections.append(Connection(conn,ConnectionType.SUBSCRIBER))
                     #         print(f"{bcolors.OKGREEN}New subscriber added{bcolors.ENDC}")
                     #     elif data.decode().lower() == '/publisher':
-                    #         self.connections.append(Connection(conn,ConnectionType.PUBLISHER))
+                    #         self.connections.append(Connection(conn,ConnectionType.PUBLISHER))Connection closed
                     #         print(f"{bcolors.OKGREEN}New publisher added{bcolors.ENDC}")
 
                     # print(f"Received from client: {data.decode()}")
@@ -104,7 +140,9 @@ class Server:
                         # and connection.topic == 
 
                             connection.conn.sendall(data)
-                    
+                    if msg_from_server == 0:
+                        for server in self.relative_servers:
+                            server.server_socket.sendall(f'/topic:{headers[1]}:{data.decode()}'.encode())
 
                 except socket.error as e:
                     print(f"{bcolors.FAIL}Socket error during client communication: {e}{bcolors.ENDC}")
@@ -149,7 +187,7 @@ class Server:
             except Exception as e:
                 print(f"{bcolors.FAIL}Error closing connection: {e}{bcolors.ENDC}")
 
-
+    
         
 # if __name__ == "__main__":
 #     server = Server()
