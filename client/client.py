@@ -1,20 +1,22 @@
 import socket
-from config import SERVER_HOST, SERVER_PORT, SERVER_ROLE
+import sys
+from config import SERVER_HOST, SERVER_PORT
 from utils import bcolors
 
-
 class Client:
-    def __init__(self, server_host: str = SERVER_HOST, server_port: int = SERVER_PORT, role: str = SERVER_ROLE) -> None:
+    def __init__(self, server_host: str = SERVER_HOST, server_port: int = SERVER_PORT, role: str = 'PUBLISHER', topic: str = 'GENERAL') -> None:
         self.server_host = server_host
         self.server_port = server_port
         self.role = role.upper()
+        self.topic = topic.upper()
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start(self) -> None:
         try:
             self.client_socket.connect((self.server_host, self.server_port))
-            print(f"{bcolors.OKGREEN}Connected to server at {self.server_host}:{self.server_port}{bcolors.ENDC} as {self.role}")
+            print(f"{bcolors.OKGREEN}Connected to server at {self.server_host}:{self.server_port} as {self.role} on topic {self.topic}{bcolors.ENDC}")
             self.client_socket.sendall(self.role.encode())
+            self.client_socket.sendall(self.topic.encode())
 
             if self.role == 'PUBLISHER':
                 self.publisher_mode()
@@ -37,7 +39,7 @@ class Client:
                 if message.lower() == '/terminate':
                     self.client_socket.close()
                     break
-                self.send_message(message)
+                self.send_message(f"{self.topic}: {message}")
         except KeyboardInterrupt:
             print("Publisher stopped by user")
         except ConnectionAbortedError:
@@ -50,7 +52,6 @@ class Client:
             print(f"{bcolors.FAIL}Error during message input or sending: {e}{bcolors.ENDC}")
         finally:
             self.client_socket.close()
-
 
     def subscriber_mode(self) -> None:
         try:
