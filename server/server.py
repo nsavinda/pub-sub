@@ -114,6 +114,8 @@ class Server:
         finally:
             try:
                 conn.close()
+                # remove connection from list
+                self.connections = [connection for connection in self.connections if connection.conn != conn]
                 print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
             except Exception as e:
                 print(f"{bcolors.FAIL}Error closing connection: {e}{bcolors.ENDC}")
@@ -141,6 +143,8 @@ class Server:
             try:
                 if conn:
                     conn.close()
+                    # remove connection from list
+                    self.connections = [connection for connection in self.connections if connection.conn != conn]
                     print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
             except Exception as e:
                 print(f"{bcolors.FAIL}Error closing connection: {e}{bcolors.ENDC}")
