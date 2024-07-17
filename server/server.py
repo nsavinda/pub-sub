@@ -12,9 +12,10 @@ class ConnectionType(Enum):
 
 
 class Connection:
-    def __init__(self,conn: socket.socket, type:ConnectionType):
+    def __init__(self,conn: socket.socket, type:ConnectionType, topic:str = None):
         self.conn = conn
         self.type = type
+        self.topic = topic
 
 
 # class Connection:
@@ -73,20 +74,35 @@ class Server:
                     data = conn.recv(4096)
                     if not data:
                         break
-                    if data.decode().lower().startswith('/'):
-                        if data.decode().lower() == '/subscriber':
-                            self.connections.append(Connection(conn,ConnectionType.SUBSCRIBER))
-                            print(f"{bcolors.OKGREEN}New subscriber added{bcolors.ENDC}")
-                        elif data.decode().lower() == '/publisher':
-                            self.connections.append(Connection(conn,ConnectionType.PUBLISHER))
-                            print(f"{bcolors.OKGREEN}New publisher added{bcolors.ENDC}")
+                    if data.decode().startswith('/'):
+                        headers = data.decode().lstrip('/').split(':')
+                        if headers[0] == 'subscriber':
+                            self.connections.append(Connection(conn,ConnectionType.SUBSCRIBER, headers[1]))
+                            print(f"{bcolors.OKGREEN}New subscriber added{bcolors.ENDC} with topic {headers[1]}")
+                        elif headers[0] == 'publisher':
+                            self.connections.append(Connection(conn,ConnectionType.PUBLISHER, headers[1]))
+                            print(f"{bcolors.OKGREEN}New publisher added{bcolors.ENDC} with topic {headers[1]}")
+                        else:
+                            print(f"{bcolors.FAIL}Invalid header{bcolors.ENDC}")
+                        continue
+
+
+                    # if data.decode().lower().startswith('/'):
+                    #     if data.decode().lower() == '/subscriber':
+                    #         self.connections.append(Connection(conn,ConnectionType.SUBSCRIBER))
+                    #         print(f"{bcolors.OKGREEN}New subscriber added{bcolors.ENDC}")
+                    #     elif data.decode().lower() == '/publisher':
+                    #         self.connections.append(Connection(conn,ConnectionType.PUBLISHER))
+                    #         print(f"{bcolors.OKGREEN}New publisher added{bcolors.ENDC}")
 
                     # print(f"Received from client: {data.decode()}")
                     # conn.sendall(data)
                     conn.sendall("200".encode())
                     # send to all subscribers
                     for connection in self.connections:
-                        if connection.type == ConnectionType.SUBSCRIBER:
+                        if connection.type == ConnectionType.SUBSCRIBER and connection.topic == headers[1]:
+                        # and connection.topic == 
+
                             connection.conn.sendall(data)
                     
 

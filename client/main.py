@@ -7,6 +7,7 @@ host = sys.argv[1] if len(sys.argv) > 1 else 'localhost'
 port = int(sys.argv[2] if len(sys.argv) > 2 else 65432)
 
 type = sys.argv[3] if len(sys.argv) > 3 else 'subscriber'
+topic = sys.argv[4] if len(sys.argv) > 4 else 'default'
 
 # if len(sys.argv) > 3:
 #     type = sys.argv[3]
@@ -20,5 +21,5 @@ type = sys.argv[3] if len(sys.argv) > 3 else 'subscriber'
 
 
 if __name__ == "__main__":
-    client = Client(server_host=host, server_port=port, type=type)
+    client = Client(server_host=host, server_port=port, type=type, topic=topic)
     client.start()

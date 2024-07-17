@@ -10,12 +10,13 @@ class Header:
         
 
 class Client:
-    def __init__(self, server_host: str = SERVER_HOST, server_port: int = SERVER_PORT, type = 'subscriber') -> None:
+    def __init__(self, server_host: str = SERVER_HOST, server_port: int = SERVER_PORT, type: str = 'subscriber', topic:str = 'default') -> None:
         self.server_host = server_host
         self.server_port = server_port
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.type = type
+        self.topic = topic
         self.header = Header(type)
         
     def start(self) -> None:
@@ -89,4 +90,4 @@ class Client:
         # finally:
         #     self.client_socket.close()
         #     print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
-        self.client_socket.sendall(f"/{self.type}".encode())
+        self.client_socket.sendall(f"/{self.type}:{self.topic}".encode())
