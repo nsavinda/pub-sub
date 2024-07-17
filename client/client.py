@@ -14,6 +14,7 @@ class Client:
         self.server_host = server_host
         self.server_port = server_port
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # self.client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.type = type
         self.header = Header(type)
         
@@ -23,7 +24,7 @@ class Client:
             print(f"{bcolors.OKGREEN}Connected to server at {self.server_host}:{self.server_port}{bcolors.ENDC}")
             
             print(self.type)
-            # self.send_header()
+            self.send_header()
             if self.type == 'subscriber':
                 self.receive_message()
 
@@ -48,11 +49,15 @@ class Client:
         try:
             self.client_socket.sendall(message.encode())
             data = self.client_socket.recv(4096)
+            
             if not data:  # If no data is received, the server has closed the connection
                 print(f"{bcolors.WARNING}Server closed the connection{bcolors.ENDC}")
                 self.client_socket.close()
                 exit(1)
-            print(f"{bcolors.OKCYAN}Received from server: {data.decode()}{bcolors.ENDC}")
+            # print(f"{bcolors.OKCYAN}Received from server: {data.decode()}{bcolors.ENDC}")
+            if data.decode() != "200":
+                print(f"{bcolors.FAIL}Error: {data.decode()}{bcolors.ENDC}")
+                
         except Exception as e:
             print(f"{bcolors.FAIL}Error during message sending/receiving: {e}{bcolors.ENDC}")
             self.client_socket.close()
@@ -75,12 +80,13 @@ class Client:
 
 
     def send_header(self) -> None:
-        try:
-            self.client_socket.sendall(json.dumps(self.header.__dict__).encode())
-        except Exception as e:
-            print(f"{bcolors.FAIL}Error during header sending: {e}{bcolors.ENDC}")
-            self.client_socket.close()
-            exit(1)
-        finally:
-            self.client_socket.close()
-            print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
+        # try:
+        #     self.client_socket.sendall(json.dumps(self.header.__dict__).encode())
+        # except Exception as e:
+        #     print(f"{bcolors.FAIL}Error during header sending: {e}{bcolors.ENDC}")
+        #     self.client_socket.close()
+        #     exit(1)
+        # finally:
+        #     self.client_socket.close()
+        #     print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
+        self.client_socket.sendall(f"/{self.type}".encode())
