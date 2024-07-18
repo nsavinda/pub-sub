@@ -11,22 +11,22 @@ class ConnectionType(Enum):
     SUBSCRIBER = "subscriber"
 
 class RelativeServer:
-    def __init__(self, conn:socket.socket , host:str, port:int) -> None:
-        print(f"Connecting from {conn.getpeername()}")
+    def __init__(self,host:str, port:int) -> None:
         print(f"Connecting to {host}:{port}")
         self.host = host
         self.port = port
-        self.conn = conn
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         print(f"{bcolors.OKGREEN}Connected to server at {host}:{port}{bcolors.ENDC}")
         # self.server_socket.connect((host, port))
         # self.thread = threading.Thread(target=self.handle_server)
-    def handle_server(self) -> None:
+    def handle_server(self,host:str="",port:str="") -> None:
         self.server_socket.connect((self.host, self.port))
-        self.server_socket.sendall(f'/server:{self.conn.getsockname()[0]}:{self.conn.getsockname()[1]}'.encode())
-        print(f"Sending to {self.host}:{self.port} -> {self.conn.getsockname()[0]}:{self.conn.getsockname()[1]}")
-
+        # self.server_socket.sendall(f'/server:{self.conn.getsockname()[0]}:{self.conn.getsockname()[1]}'.encode())
+        if host and port:
+            self.server_socket.sendall(f'/server:{host}:{port}'.encode())
+            # print(f"Sending to {self.host}:{self.port} -> {host}:{port}")
+        
 
 
     # def send_server(self) -> None:
@@ -50,13 +50,13 @@ class Connection:
 
 
 class Server:
-    def __init__(self, host: str = HOST, port: int = PORT,relative_server:str = '' ) -> None:
+    def __init__(self, host: str = HOST, port: int = PORT,relative_server:str = "" ) -> None:
         self.host = host
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections : list[Connection] = []
         self.relative_servers : list[RelativeServer] = []
-        self.relative_server = relative_server
+        self.relative_server: str = relative_server
         
     
     def start(self) -> None:
@@ -65,13 +65,16 @@ class Server:
             self.server_socket.listen(MAXC)
             print(f"{bcolors.OKGREEN}Server listening on {self.host}:{self.port}{bcolors.ENDC}")
 
-            # self.relative_servers.append(RelativeServer(
+            if self.relative_server:
+                self.relative_servers.append(RelativeServer(self.relative_server.split(':')[0], int(self.relative_server.split(':')[1])))
+                self.relative_servers[0].handle_server(self.host, self.port)
+
 
             while True:
                 try:
                     conn, addr = self.server_socket.accept()
 
-                    print(conn)
+                    # print(conn)
 
                     # client_details_json = conn.recv(4096).decode()
                     # client_details = json.loads(client_details_json)
@@ -103,9 +106,9 @@ class Server:
                     data = conn.recv(4096)
                     if not data:
                         break
-                    print(f"Received from client({conn.getpeername()}): {data.decode()}")
+                    # print(f"Received from client({conn.getpeername()}): {data.decode()}")
                     # pritn relative servers host and port
-                    print([server.host + ":" + str(server.port) for server in self.relative_servers])
+                    # print([server.host + ":" + str(server.port) for server in self.relative_servers])
                     
                     if data.decode().startswith('/'):
                         headers = data.decode().lstrip('/').split(':')
@@ -120,18 +123,18 @@ class Server:
                                 print(f"{bcolors.FAIL}Server already exists{bcolors.ENDC}")
                             else:
                                 for server in self.relative_servers:
-                                    print(server.host+":"+str(server.port))
+                                    # print(server.host+":"+str(server.port))
                                     # if server.conn.getpeername()[0] == conn.getpeername()[0] and server.conn.getpeername()[1] == conn.getpeername()[1]:
                                     if server.host != headers[1] or server.port != int(headers[2]) and server.host != self.host and server.port != self.port:
                                         # server.server_socket.sendall(f'/server:{conn.getsockname()[0]}:{conn.getsockname()[1]}'.encode())
 
                                         server.server_socket.sendall(f'/server:{headers[1]}:{headers[2]}'.encode())
-                                        print(f"Sending to {server.host}:{server.port} -> {headers[1]}:{headers[2]}")
+                                        # print(f"Sending to {server.host}:{server.port} -> {headers[1]}:{headers[2]}")
 
 
                                         # print(f"Sending to {conn.getpeername()} -> {server.host}:{server.port}")
                                         # conn.sendall(f'/server:{server.host}:{server.port}'.encode())
-                                relative_server = RelativeServer(conn, headers[1], int(headers[2]))
+                                relative_server = RelativeServer(headers[1], int(headers[2]))
                                 thread = threading.Thread(target=relative_server.handle_server)
                                 thread.start()
                                 self.relative_servers.append(relative_server)
@@ -140,7 +143,7 @@ class Server:
 
                                 # self.relative_servers.append(RelativeServer(conn, headers[1], int(headers[2])))
 
-                                print([server.server_socket for server in self.relative_servers])
+                                # print([server.server_socket for server in self.relative_servers])
                                 print(f"{bcolors.OKGREEN}New server added{bcolors.ENDC} with host {headers[1]} and port {headers[2]}")
                         elif headers[0] == 'topic':
                             # check server in relative_servers
@@ -154,7 +157,7 @@ class Server:
                             #             connection.conn.sendall(f'{headers[2]}'.encode())
                             # else:
                             #     print(f"{bcolors.FAIL}Server not found in relative servers{bcolors.ENDC}")
-                            print(f"{bcolors.OKGREEN}Topic added{bcolors.ENDC} with topic {headers[1]}")
+                            # print(f"{bcolors.OKGREEN}Topic added{bcolors.ENDC} with topic {headers[1]}")
                             for connection in self.connections:
                                 if connection.type == ConnectionType.SUBSCRIBER and connection.topic == headers[1]:
                                     connection.conn.sendall(f'{headers[2]}'.encode())
@@ -201,33 +204,33 @@ class Server:
                 print(f"{bcolors.FAIL}Error closing connection: {e}{bcolors.ENDC}")
 
 
-    def client_init(self, conn: socket.socket) -> None:
-        try:
-            client_json = conn.recv(4096)
-            if not client_json:
-                print(f"{bcolors.FAIL}Error: No data received from client{bcolors.ENDC}")
-                return
+    # def client_init(self, conn: socket.socket) -> None:
+    #     try:
+    #         client_json = conn.recv(4096)
+    #         if not client_json:
+    #             print(f"{bcolors.FAIL}Error: No data received from client{bcolors.ENDC}")
+    #             return
 
-            client = json.loads(client_json.decode())
-            print(client)
+    #         client = json.loads(client_json.decode())
+    #         print(client)
 
-            return client['type']
+    #         return client['type']
 
-        except json.JSONDecodeError as je:
-            print(f"{bcolors.FAIL}Error decoding JSON: {je}{bcolors.ENDC}")
-        except socket.error as se:
-            print(f"{bcolors.FAIL}Socket error: {se}{bcolors.ENDC}")
-        except Exception as e:
-            print(f"{bcolors.FAIL}Error during client initialization: {e}{bcolors.ENDC}")
-        finally:
-            try:
-                if conn:
-                    conn.close()
-                    # remove connection from list
-                    self.connections = [connection for connection in self.connections if connection.conn != conn]
-                    print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
-            except Exception as e:
-                print(f"{bcolors.FAIL}Error closing connection: {e}{bcolors.ENDC}")
+    #     except json.JSONDecodeError as je:
+    #         print(f"{bcolors.FAIL}Error decoding JSON: {je}{bcolors.ENDC}")
+    #     except socket.error as se:
+    #         print(f"{bcolors.FAIL}Socket error: {se}{bcolors.ENDC}")
+    #     except Exception as e:
+    #         print(f"{bcolors.FAIL}Error during client initialization: {e}{bcolors.ENDC}")
+    #     finally:
+    #         try:
+    #             if conn:
+    #                 conn.close()
+    #                 # remove connection from list
+    #                 self.connections = [connection for connection in self.connections if connection.conn != conn]
+    #                 print(f"{bcolors.WARNING}Connection closed{bcolors.ENDC}")
+    #         except Exception as e:
+    #             print(f"{bcolors.FAIL}Error closing connection: {e}{bcolors.ENDC}")
 
     
         
