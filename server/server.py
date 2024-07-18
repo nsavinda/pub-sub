@@ -66,8 +66,12 @@ class Server:
             print(f"{bcolors.OKGREEN}Server listening on {self.host}:{self.port}{bcolors.ENDC}")
 
             if self.relative_server:
-                self.relative_servers.append(RelativeServer(self.relative_server.split(':')[0], int(self.relative_server.split(':')[1])))
-                self.relative_servers[0].handle_server(self.host, self.port)
+                servers = self.relative_server.split(',')
+                for server in servers:
+                    self.relative_servers.append(RelativeServer(server.split(':')[0], int(server.split(':')[1])))
+                    self.relative_servers[-1].handle_server(self.host, self.port)
+                # self.relative_servers.append(RelativeServer(self.relative_server.split(':')[0], int(self.relative_server.split(':')[1])))
+                # self.relative_servers[0].handle_server(self.host, self.port)
 
 
             while True:
