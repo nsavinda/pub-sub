@@ -7,12 +7,12 @@
 
 ```bash
 cd server
-python main.py <port>
+python main.py -p <port>
 ```
 example:
 
 ```bash
-python main.py 5000
+python main.py -p 5000
 ```
 
 Add 2nd server
