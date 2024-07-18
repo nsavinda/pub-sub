@@ -30,6 +30,7 @@ python main.py -p 5001 -r 127.0.0.1:5000
 
 ```bash
 python main.py -p 5002 -r 127.0.0.1:5000,127.0.0.1:5001
+```
 
 ## Client
 
