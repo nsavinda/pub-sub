@@ -1,11 +1,10 @@
 import socket
 import threading
 from typing import Dict, Tuple
-from config import HOST, PORT
 from utils import bcolors
 
 class Server:
-    def __init__(self, host: str = HOST, port: int = PORT) -> None:
+    def __init__(self, host: str = '127.0.0.1', port: int = 65432) -> None:
         self.host = host
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
