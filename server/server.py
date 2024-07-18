@@ -18,13 +18,19 @@ class RelativeServer:
         self.port = port
         self.conn = conn
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.connect((host, port))
-        self.server_socket.sendall(f'/server:{conn.getsockname()[0]}:{conn.getsockname()[1]}'.encode())
+
         print(f"{bcolors.OKGREEN}Connected to server at {host}:{port}{bcolors.ENDC}")
         # self.server_socket.connect((host, port))
         # self.thread = threading.Thread(target=self.handle_server)
+    def handle_server(self) -> None:
+        self.server_socket.connect((self.host, self.port))
+        self.server_socket.sendall(f'/server:{self.conn.getsockname()[0]}:{self.conn.getsockname()[1]}'.encode())
+        print(f"Sending to {self.host}:{self.port} -> {self.conn.getsockname()[0]}:{self.conn.getsockname()[1]}")
 
 
+
+    # def send_server(self) -> None:
+    #     for RelativeServer in sel
 
 
 class Connection:
@@ -44,18 +50,22 @@ class Connection:
 
 
 class Server:
-    def __init__(self, host: str = HOST, port: int = PORT) -> None:
+    def __init__(self, host: str = HOST, port: int = PORT,relative_server:str = '' ) -> None:
         self.host = host
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connections : list[Connection] = []
         self.relative_servers : list[RelativeServer] = []
+        self.relative_server = relative_server
+        
     
     def start(self) -> None:
         try:
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(MAXC)
             print(f"{bcolors.OKGREEN}Server listening on {self.host}:{self.port}{bcolors.ENDC}")
+
+            # self.relative_servers.append(RelativeServer(
 
             while True:
                 try:
@@ -93,6 +103,10 @@ class Server:
                     data = conn.recv(4096)
                     if not data:
                         break
+                    print(f"Received from client({conn.getpeername()}): {data.decode()}")
+                    # pritn relative servers host and port
+                    print([server.host + ":" + str(server.port) for server in self.relative_servers])
+                    
                     if data.decode().startswith('/'):
                         headers = data.decode().lstrip('/').split(':')
                         if headers[0] == 'subscriber':
@@ -105,17 +119,45 @@ class Server:
                             if any(server.host == headers[1] and server.port == int(headers[2]) for server in self.relative_servers):
                                 print(f"{bcolors.FAIL}Server already exists{bcolors.ENDC}")
                             else:
-                                self.relative_servers.append(RelativeServer(conn, headers[1], int(headers[2])))
+                                for server in self.relative_servers:
+                                    print(server.host+":"+str(server.port))
+                                    # if server.conn.getpeername()[0] == conn.getpeername()[0] and server.conn.getpeername()[1] == conn.getpeername()[1]:
+                                    if server.host != headers[1] or server.port != int(headers[2]) and server.host != self.host and server.port != self.port:
+                                        # server.server_socket.sendall(f'/server:{conn.getsockname()[0]}:{conn.getsockname()[1]}'.encode())
+
+                                        server.server_socket.sendall(f'/server:{headers[1]}:{headers[2]}'.encode())
+                                        print(f"Sending to {server.host}:{server.port} -> {headers[1]}:{headers[2]}")
+
+
+                                        # print(f"Sending to {conn.getpeername()} -> {server.host}:{server.port}")
+                                        # conn.sendall(f'/server:{server.host}:{server.port}'.encode())
+                                relative_server = RelativeServer(conn, headers[1], int(headers[2]))
+                                thread = threading.Thread(target=relative_server.handle_server)
+                                thread.start()
+                                self.relative_servers.append(relative_server)
+                                # thread = threading.Thread(target=RelativeServer, args=(conn, headers[1], int(headers[2])))
+                                # thread.start()
+
+                                # self.relative_servers.append(RelativeServer(conn, headers[1], int(headers[2])))
+
                                 print([server.server_socket for server in self.relative_servers])
                                 print(f"{bcolors.OKGREEN}New server added{bcolors.ENDC} with host {headers[1]} and port {headers[2]}")
                         elif headers[0] == 'topic':
                             # check server in relative_servers
                             # if not in relative_servers, send error
                             msg_from_server = 1
-                            if any(server.conn.getpeername()[0] == conn.getpeername()[0] and server.conn.getpeername()[1] == conn.getpeername()[1] for server in self.relative_servers):
-                                print(f"{bcolors.OKGREEN}Topic added{bcolors.ENDC} with topic {headers[1]}")
-                            else:
-                                print(f"{bcolors.FAIL}Server not found in relative servers{bcolors.ENDC}")
+                            # print(f"{server.conn.getpeername()[0]}:{server.conn.getpeername()[1]}")
+                            # if any(server.conn.getpeername()[0] == conn.getpeername()[0] and server.conn.getpeername()[1] == conn.getpeername()[1] for server in self.relative_servers):
+                            #     print(f"{bcolors.OKGREEN}Topic added{bcolors.ENDC} with topic {headers[1]}")
+                            #     for connection in self.connections:
+                            #         if connection.type == ConnectionType.SUBSCRIBER and connection.topic == headers[1]:
+                            #             connection.conn.sendall(f'{headers[2]}'.encode())
+                            # else:
+                            #     print(f"{bcolors.FAIL}Server not found in relative servers{bcolors.ENDC}")
+                            print(f"{bcolors.OKGREEN}Topic added{bcolors.ENDC} with topic {headers[1]}")
+                            for connection in self.connections:
+                                if connection.type == ConnectionType.SUBSCRIBER and connection.topic == headers[1]:
+                                    connection.conn.sendall(f'{headers[2]}'.encode())
 
                             
                         else:
