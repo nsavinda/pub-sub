@@ -18,13 +18,13 @@ python main.py 5000
 Add 2nd server
 
 ```bash
-python main.py <port> -r <previous server ip>:<previous server port>
+python main.py -p <port> -r <previous server ip>:<previous server port>
 ```
 
 example:
 
 ```bash
-python main.py 5001 -r 127.0.0.1:5000
+python main.py -p 5001 -r 127.0.0.1:5000
 ```
 
 ## Client
