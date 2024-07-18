@@ -1,20 +1,20 @@
 import socket
-from config import SERVER_HOST, SERVER_PORT, SERVER_ROLE
 from utils import bcolors
 
 
 class Client:
-    def __init__(self, server_host: str = SERVER_HOST, server_port: int = SERVER_PORT, role: str = SERVER_ROLE) -> None:
+    def __init__(self, server_host, server_port, role, topic) -> None:
         self.server_host = server_host
         self.server_port = server_port
         self.role = role.upper()
+        self.topic = topic.lower()
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start(self) -> None:
         try:
             self.client_socket.connect((self.server_host, self.server_port))
-            print(f"{bcolors.OKGREEN}Connected to server at {self.server_host}:{self.server_port}{bcolors.ENDC} as {self.role}")
-            self.client_socket.sendall(self.role.encode())
+            print(f"{bcolors.OKGREEN}Connected to server at {self.server_host}:{self.server_port}{bcolors.ENDC} as {self.role} on topic {self.topic}")
+            self.client_socket.sendall(f"{self.role}:{self.topic}".encode())
 
             if self.role == 'PUBLISHER':
                 self.publisher_mode()
@@ -70,7 +70,7 @@ class Client:
 
     def send_message(self, message: str) -> None:
         try:
-            self.client_socket.sendall(message.encode())
+            self.client_socket.sendall(f"{self.topic}:{message}".encode())
             data = self.client_socket.recv(1024)
             print(f"{bcolors.OKCYAN}Received from server: {data.decode()}{bcolors.ENDC}")
         except Exception as e:
