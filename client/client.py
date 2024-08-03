@@ -17,9 +17,9 @@ class Client:
             
             while True:
                 try:
-                    # message = input("Enter message to send (or '/exit' to quit):")
-                    message = input(f"{bcolors.OKBLUE}Enter message to send (or '/exit' to quit):{bcolors.ENDC}")
-                    if message.lower() == '/terminate':
+                    # message = input("Enter message to send (or 'terminate' to quit):")
+                    message = input(f"{bcolors.OKBLUE}Enter message to send (or 'terminate' to quit):{bcolors.ENDC}")
+                    if message.lower() == 'terminate':
                         self.client_socket.close()
                         break
                     self.send_message(message)
