@@ -33,8 +33,8 @@ class Client:
     def publisher_mode(self) -> None:
         try:
             while True:
-                message = input(f"{bcolors.OKBLUE}Enter message to send (or '/terminate' to quit):{bcolors.ENDC}")
-                if message.lower() == '/terminate':
+                message = input(f"{bcolors.OKBLUE}Enter message to send (or 'terminate' to quit):{bcolors.ENDC}")
+                if message.lower() == 'terminate':
                     self.client_socket.close()
                     break
                 self.send_message(message)
